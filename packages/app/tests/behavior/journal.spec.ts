@@ -155,6 +155,27 @@ describe('Journal logging behaviour', () => {
     expect(content).toContain('8:45 PM');
   });
 
+  it('uses JOURNAL_TIMEZONE for the entry time and journal date', async () => {
+    vi.useFakeTimers();
+    // 01:00 UTC on June 15 = 6:00 PM on June 14 in Los Angeles (DST, UTC-7)
+    vi.setSystemTime(new Date('2024-06-15T01:00:00Z'));
+
+    harness = new ToolHarness({
+      env: { JOURNAL_TIMEZONE: 'America/Los_Angeles' },
+    });
+
+    const result = await harness.invoke('log-journal-entry', {
+      activity_type: 'development',
+      summary: 'Late evening hacking.',
+      key_topics: ['Timezones'],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data.journal_path).toBe('Journal/2024-06-14.md');
+    const content = await harness.vault.readFile('Journal/2024-06-14.md');
+    expect(content).toContain('### 6:00 PM - Development');
+  });
+
   it('handles special characters in summary and topics', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-10-05T12:00:00Z'));

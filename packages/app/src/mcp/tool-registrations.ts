@@ -175,6 +175,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalPathTemplate: process.env.JOURNAL_PATH_TEMPLATE!,
         journalActivitySection: process.env.JOURNAL_ACTIVITY_SECTION!,
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
+        journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
       const result = await handlers.handleAppendContent(vault, args, config);
       return formatToolResult(result);
@@ -202,6 +203,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalPathTemplate: process.env.JOURNAL_PATH_TEMPLATE!,
         journalActivitySection: process.env.JOURNAL_ACTIVITY_SECTION!,
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
+        journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
       const result = await handlers.handlePatchContent(vault, args, config);
       return formatToolResult(result);
@@ -418,6 +420,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalPathTemplate: process.env.JOURNAL_PATH_TEMPLATE!,
         journalActivitySection: process.env.JOURNAL_ACTIVITY_SECTION!,
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
+        journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
       const result = await handlers.handleLogJournalEntry(vault, args, config);
       return formatToolResult(result);

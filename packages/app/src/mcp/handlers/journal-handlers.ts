@@ -1,5 +1,5 @@
 import { VaultManager } from '@/services/vault-manager';
-import { formatJournalEntry } from '@/services/journal-formatter';
+import { formatJournalEntry, formatJournalDate } from '@/services/journal-formatter';
 import type { ToolResponse, JournalConfig } from './types';
 import { getOrInitializeContent } from './file-handlers';
 
@@ -22,13 +22,14 @@ export async function handleLogJournalEntry(
 ): Promise<ToolResponse> {
   try {
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = formatJournalDate(now, config.journalTimezone);
     const journalPath = config.journalPathTemplate.replace('{{date}}', dateStr);
 
     let content = await getOrInitializeContent(vault, journalPath, config);
 
     const entry = formatJournalEntry({
       timestamp: now,
+      timezone: config.journalTimezone,
       activityType: args.activity_type,
       summary: args.summary,
       keyTopics: args.key_topics,

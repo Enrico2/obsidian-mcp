@@ -6,6 +6,7 @@
 
 export interface JournalEntryData {
   timestamp: Date;
+  timezone?: string;
   activityType:
     | 'development'
     | 'research'
@@ -23,7 +24,7 @@ export interface JournalEntryData {
  * Format a journal entry in Obsidian markdown format
  */
 export function formatJournalEntry(data: JournalEntryData): string {
-  const time = formatTime(data.timestamp);
+  const time = formatTime(data.timestamp, data.timezone);
   const activityLabel = capitalizeFirst(data.activityType);
 
   const lines: string[] = [];
@@ -54,17 +55,35 @@ export function formatJournalEntry(data: JournalEntryData): string {
 }
 
 /**
- * Format time as HH:MM AM/PM (using UTC time)
+ * Format time as HH:MM AM/PM in the given IANA timezone (defaults to UTC)
  */
-function formatTime(date: Date): string {
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
+function formatTime(date: Date, timeZone: string = 'UTC'): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone,
+  }).formatToParts(date);
 
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  const displayMinutes = minutes.toString().padStart(2, '0');
+  const part = (type: string) => parts.find(p => p.type === type)?.value ?? '';
 
-  return `${displayHours}:${displayMinutes} ${ampm}`;
+  return `${part('hour')}:${part('minute')} ${part('dayPeriod')}`;
+}
+
+/**
+ * Format a date as YYYY-MM-DD in the given IANA timezone (defaults to UTC)
+ */
+export function formatJournalDate(date: Date, timeZone: string = 'UTC'): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone,
+  }).formatToParts(date);
+
+  const part = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /**
