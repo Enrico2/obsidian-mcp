@@ -11,13 +11,24 @@ import * as auth from '@/services/auth';
 import { logger } from '@/utils/logger';
 
 /**
+ * Build the WWW-Authenticate challenge pointing at the RFC 9728 protected
+ * resource metadata, so clients can discover the authorization server
+ */
+function bearerChallenge(error?: string): string {
+  const baseUrl = process.env.BASE_URL || '';
+  const metadataUrl = `${baseUrl}/.well-known/oauth-protected-resource/mcp`;
+  const errorPart = error ? `error="${error}", ` : '';
+  return `Bearer ${errorPart}resource_metadata="${metadataUrl}"`;
+}
+
+/**
  * OAuth middleware to authenticate Bearer tokens
  */
 async function authenticateToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    res.status(401).json({
+    res.status(401).set('WWW-Authenticate', bearerChallenge()).json({
       error: 'unauthorized',
       error_description: 'Missing or invalid Authorization header',
     });
@@ -27,7 +38,7 @@ async function authenticateToken(req: Request, res: Response, next: NextFunction
   const token = authHeader.substring(7);
 
   if (!(await auth.validateAccessToken(token))) {
-    res.status(401).json({
+    res.status(401).set('WWW-Authenticate', bearerChallenge('invalid_token')).json({
       error: 'invalid_token',
       error_description: 'Access token is invalid or expired',
     });

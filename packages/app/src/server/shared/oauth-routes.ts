@@ -38,18 +38,41 @@ export function registerOAuthRoutes(app: Express, config: OAuthConfig): void {
     res.cookie('session_id', sessionId, sessionCookieOptions);
   };
 
+  const authorizationServerMetadata = {
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/oauth/authorize`,
+    token_endpoint: `${baseUrl}/oauth/token`,
+    registration_endpoint: `${baseUrl}/oauth/register`,
+    revocation_endpoint: `${baseUrl}/oauth/revoke`,
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    code_challenge_methods_supported: ['S256', 'plain'],
+    token_endpoint_auth_methods_supported: ['client_secret_post'],
+  };
+
+  // RFC 8414: serve both the root form and the path-inserted form some
+  // clients derive for the /mcp resource
   app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-    res.json({
-      issuer: baseUrl,
-      authorization_endpoint: `${baseUrl}/oauth/authorize`,
-      token_endpoint: `${baseUrl}/oauth/token`,
-      registration_endpoint: `${baseUrl}/oauth/register`,
-      revocation_endpoint: `${baseUrl}/oauth/revoke`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code', 'refresh_token'],
-      code_challenge_methods_supported: ['S256', 'plain'],
-      token_endpoint_auth_methods_supported: ['client_secret_post'],
-    });
+    res.json(authorizationServerMetadata);
+  });
+  app.get('/.well-known/oauth-authorization-server/mcp', (_req, res) => {
+    res.json(authorizationServerMetadata);
+  });
+
+  // RFC 9728 protected resource metadata — required by clients (e.g. Gemini)
+  // that discover OAuth via the resource rather than the authorization server
+  const protectedResourceMetadata = {
+    resource: `${baseUrl}/mcp`,
+    authorization_servers: [baseUrl],
+    bearer_methods_supported: ['header'],
+    resource_name: 'obsidian-mcp',
+  };
+
+  app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+    res.json(protectedResourceMetadata);
+  });
+  app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) => {
+    res.json(protectedResourceMetadata);
   });
 
   app.get('/login', async (req, res) => {
