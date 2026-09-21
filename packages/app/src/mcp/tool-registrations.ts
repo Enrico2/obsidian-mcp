@@ -1,22 +1,29 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { VaultManager } from '@/services/vault-manager';
+import { runVaultOperation, type VaultManager } from '@/services/vault-manager';
 import * as toolDefs from '@/mcp/tool-definitions';
 import * as handlers from '@/mcp/handlers';
 import type { ToolResponse } from '@/mcp/handlers';
+import { logger, redactSensitiveText } from '@/utils/logger';
 
 type McpToolResult = {
   content: Array<{ type: 'text'; text: string }>;
   structuredContent?: Record<string, unknown>;
+  isError?: boolean;
 };
 
 function formatToolResult(result: ToolResponse): McpToolResult {
   const contentText = result.success
     ? JSON.stringify(result.data ?? {}, null, 2)
-    : (result.error ?? 'Unknown error');
+    : redactSensitiveText(result.error ?? 'Unknown error');
 
   const response: McpToolResult = {
     content: [{ type: 'text', text: contentText }],
   };
+
+  if (!result.success) {
+    response.isError = true;
+    logger.warn('Vault tool failed', { error: contentText });
+  }
 
   if (result.success && result.data !== undefined) {
     response.structuredContent =
@@ -45,7 +52,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleReadNote(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleReadNote(vault, args));
       return formatToolResult(result);
     },
   );
@@ -66,7 +73,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleReadNotes(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleReadNotes(vault, args));
       return formatToolResult(result);
     },
   );
@@ -87,7 +94,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleCreateNote(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleCreateNote(vault, args));
       return formatToolResult(result);
     },
   );
@@ -108,7 +115,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleEditNote(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleEditNote(vault, args));
       return formatToolResult(result);
     },
   );
@@ -129,7 +136,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleDeleteNote(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleDeleteNote(vault, args));
       return formatToolResult(result);
     },
   );
@@ -150,7 +157,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleMoveNote(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleMoveNote(vault, args));
       return formatToolResult(result);
     },
   );
@@ -177,7 +184,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
         journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
-      const result = await handlers.handleAppendContent(vault, args, config);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleAppendContent(vault, args, config),
+      );
       return formatToolResult(result);
     },
   );
@@ -205,7 +214,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
         journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
-      const result = await handlers.handlePatchContent(vault, args, config);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handlePatchContent(vault, args, config),
+      );
       return formatToolResult(result);
     },
   );
@@ -226,7 +237,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleApplyDiffPatch(vault, args);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleApplyDiffPatch(vault, args),
+      );
       return formatToolResult(result);
     },
   );
@@ -247,7 +260,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleCreateDirectory(vault, args);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleCreateDirectory(vault, args),
+      );
       return formatToolResult(result);
     },
   );
@@ -268,7 +283,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleListFilesInVault(vault, args);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleListFilesInVault(vault, args),
+      );
       return formatToolResult(result);
     },
   );
@@ -289,7 +306,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleListFilesInDir(vault, args);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleListFilesInDir(vault, args),
+      );
       return formatToolResult(result);
     },
   );
@@ -311,7 +330,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleSearchVault(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleSearchVault(vault, args));
       return formatToolResult(result);
     },
   );
@@ -332,7 +351,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleAddTags(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleAddTags(vault, args));
       return formatToolResult(result);
     },
   );
@@ -353,7 +372,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleRemoveTags(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleRemoveTags(vault, args));
       return formatToolResult(result);
     },
   );
@@ -374,7 +393,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleRenameTag(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleRenameTag(vault, args));
       return formatToolResult(result);
     },
   );
@@ -395,7 +414,7 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
     },
     async args => {
       const vault = getVaultManager();
-      const result = await handlers.handleManageTags(vault, args);
+      const result = await runVaultOperation(vault, () => handlers.handleManageTags(vault, args));
       return formatToolResult(result);
     },
   );
@@ -422,7 +441,9 @@ export function registerTools(server: McpServer, getVaultManager: () => VaultMan
         journalFileTemplate: process.env.JOURNAL_FILE_TEMPLATE!,
         journalTimezone: process.env.JOURNAL_TIMEZONE,
       };
-      const result = await handlers.handleLogJournalEntry(vault, args, config);
+      const result = await runVaultOperation(vault, () =>
+        handlers.handleLogJournalEntry(vault, args, config),
+      );
       return formatToolResult(result);
     },
   );

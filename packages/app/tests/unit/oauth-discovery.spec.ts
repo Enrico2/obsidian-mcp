@@ -18,18 +18,18 @@ function makeOAuthApp() {
 }
 
 describe('OAuth discovery endpoints', () => {
-  it.each(['/.well-known/oauth-authorization-server', '/.well-known/oauth-authorization-server/mcp'])(
-    'serves authorization server metadata at %s',
-    async path => {
-      const res = await request(makeOAuthApp()).get(path);
+  it.each([
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/oauth-authorization-server/mcp',
+  ])('serves authorization server metadata at %s', async path => {
+    const res = await request(makeOAuthApp()).get(path);
 
-      expect(res.status).toBe(200);
-      expect(res.body.issuer).toBe(BASE_URL);
-      expect(res.body.authorization_endpoint).toBe(`${BASE_URL}/oauth/authorize`);
-      expect(res.body.token_endpoint).toBe(`${BASE_URL}/oauth/token`);
-      expect(res.body.registration_endpoint).toBe(`${BASE_URL}/oauth/register`);
-    },
-  );
+    expect(res.status).toBe(200);
+    expect(res.body.issuer).toBe(BASE_URL);
+    expect(res.body.authorization_endpoint).toBe(`${BASE_URL}/oauth/authorize`);
+    expect(res.body.token_endpoint).toBe(`${BASE_URL}/oauth/token`);
+    expect(res.body.registration_endpoint).toBe(`${BASE_URL}/oauth/register`);
+  });
 
   it.each(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'])(
     'serves protected resource metadata at %s',
@@ -62,7 +62,7 @@ describe('MCP endpoint auth challenge', () => {
     process.env.BASE_URL = BASE_URL;
 
     const app = express();
-    registerMcpRoute(app, {} as McpServer);
+    registerMcpRoute(app, () => ({}) as McpServer);
 
     const res = await request(app).post('/mcp').send({});
 
